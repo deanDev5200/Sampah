@@ -22,7 +22,7 @@ class TrashDetector:
     :param ``confidence``: Minimum confidence for the model to detect
     """
 
-    def __init__(self, model_path='trash.pt', camera_index=1, savefile='record.csv', notification_icon='icon.png', notification_audio='sfx.wav', confidence=0.5, stop_key='p', print_key='q'):
+    def __init__(self, model_path='trash.pt', camera_index=1, savefile='record.csv', notification_icon='icon.png', notification_audio='sfx.wav', confidence=0.65, stop_key='p', print_key='q'):
         self.model = YOLO(model_path)
         self.detects = []
         self.lastCount = 0
@@ -52,6 +52,10 @@ class TrashDetector:
 
         # Send the notification
         notification.send()
+    
+    def stop(self):
+        cv2.destroyAllWindows()
+        
 
     def resultProcess(self, objects: int, xyxy: list):
 
@@ -129,7 +133,6 @@ class TrashDetector:
         # If stop key is pressed
         elif event.name == self.stop_key:
             self.start = False
-        print(event.name)
 
     def loop(self) -> bool:
         """
