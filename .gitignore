@@ -4,6 +4,8 @@ output/
 *.py[cod]
 *$py.class
 
+.vscode/
+
 # C extensions
 *.so
 

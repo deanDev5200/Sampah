@@ -1,8 +1,8 @@
-import torch, cv2, datetime, time
+import keyboard
+import torch, cv2, datetime, time, os
 print('torch %s %s' % (torch.__version__, "CUDA" if torch.cuda.is_available() else 'CPU'))
 from ultralytics import YOLO
 from notifypy import Notify
-import os
 
 # Create output directory
 try:
@@ -22,7 +22,7 @@ class TrashDetector:
     :param ``confidence``: Minimum confidence for the model to detect
     """
 
-    def __init__(self, model_path='trash.pt', camera_index=1, savefile='record.csv', notification_icon='icon.png', notification_audio='sfx.wav', confidence=0.78):
+    def __init__(self, model_path='trash.pt', camera_index=1, savefile='record.csv', notification_icon='icon.png', notification_audio='sfx.wav', confidence=0.5, stop_key='p', print_key='q'):
         self.model = YOLO(model_path)
         self.detects = []
         self.lastCount = 0
@@ -32,7 +32,12 @@ class TrashDetector:
         self.notification_audio = notification_audio
         self.confidence = confidence
         self.img = None
+        self.start = True
         self.savename = savefile
+        self.stop_key = stop_key
+        self.print_key = print_key
+        # Set the keypress callback
+        keyboard.on_press(lambda e: self.checkKeypress(e))
 
     def notify(self, objects: int):
 
@@ -84,28 +89,9 @@ class TrashDetector:
             # If there is no detection, set the last objects count to 0
             self.lastCount = 0
 
-    def loop(self) -> bool:
-        """
-        Call this function in a loop to start detecting
-
-        :return: Boolean value (False means the loop must stop)
-        """
-
-        # Get the current frame and assign self.img with frame
-        _, frame = self.video.read()
-        self.img = frame
-
-        # Get the results from model's inference
-        results = self.model(frame, stream=True, verbose=False, save=False, conf=self.confidence)
-        for r in results:
-            # Process the results
-            self.resultProcess(len(r.boxes.xyxy.cpu().numpy()), r.boxes.xyxy.tolist())
-
-        # Show the output on another window
-        cv2.imshow('Output', self.img)
-
-        # If 'Q' key is pressed
-        if cv2.waitKey(1) & 0xFF == ord('q'):
+    def checkKeypress(self, event: keyboard.KeyboardEvent):
+        # If print key is pressed
+        if event.name == self.print_key:
             print('--- Detections Until Now ---')
 
             # If detections aren't empty
@@ -140,15 +126,32 @@ class TrashDetector:
                 print('------- No Detection -------')
 
             print('--- Detections Until Now ---')
+        # If stop key is pressed
+        elif event.name == self.stop_key:
+            self.start = False
+        print(event.name)
 
-        # If 'P' key is pressed
-        elif cv2.waitKey(1) & 0xFF == ord('p'):
+    def loop(self) -> bool:
+        """
+        Call this function in a loop to start detecting
 
-            # Return False value
-            return False
+        :return: Boolean value (False means the loop must stop)
+        """
 
-        # If the hour has changed
-        elif datetime.datetime.now().hour != self.lastHour:
+        # Get the current frame and assign self.img with frame
+        _, frame = self.video.read()
+        self.img = frame
+
+        # Get the results from model's inference
+        results = self.model(frame, stream=True, verbose=False, save=False, conf=self.confidence)
+        for r in results:
+            # Process the results
+            self.resultProcess(len(r.boxes.xyxy.cpu().numpy()), r.boxes.xyxy.tolist())
+
+        # Show the output on another window
+        cv2.imshow('Output', self.img)
+        
+        if datetime.datetime.now().hour != self.lastHour:
             print('--- Detections Until Now ---')
 
             # If detections aren't empty
@@ -183,4 +186,6 @@ class TrashDetector:
                 # Print 'No Detection'
                 print('------- No Detection -------')
             print('--- Detections Until Now ---')
-        return True
+        
+        cv2.waitKey(1)
+        return self.start
