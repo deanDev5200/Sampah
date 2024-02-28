@@ -1,0 +1,13 @@
+description: Ultralytics trash-s model trained on data.yaml
+author: Ultralytics
+license: AGPL-3.0 https://ultralytics.com/license
+date: '2024-02-28T16:30:50.211543'
+version: 8.1.19
+stride: 32
+task: detect
+batch: 1
+imgsz:
+- 640
+- 640
+names:
+  0: sampah
